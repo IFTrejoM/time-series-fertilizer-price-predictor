@@ -2,3 +2,4 @@ Precios combustibles -> Indice Precios del Consumidor INEC: https://www.ecuadore
 Inflación mensual -> Banco Central del Ecuador: https://www.bce.fin.ec/informacioneconomica 2023-12-22
 Precios WTI -> U.S. Energy Information Administration: https://www.eia.gov/dnav/pet/hist/rwtcM.htm 2023-12-22
 Datos climáticos 1901-2022 -> Climate Change Knowledge Portal: https://cckpapi.worldbank.org/cckp/v1/cru-x0.5_timeseries_pr,tas_timeseries_monthly_1901-2022_mean_historical_cru_ts4.07_mean/ECU?_format=json
+Precios insumos agropecuarios 1990-2023 -> https://www.bce.fin.ec/informacioneconomica/sector-externo 2023-12-28 
