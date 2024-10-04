@@ -79,3 +79,26 @@ def apply_outlier_capping(series, multiplier=1.5):
     series_capped = series.clip(lower=lower_limit, upper=upper_limit)
     
     return pd.Series(series_capped)
+
+# ================================================================================================================= #
+from unidecode import unidecode
+import re
+
+def preprocess_text(text, keep_characters=''):
+    """Preprocesamiento básico de texto.
+    Args:
+        text (str): El texto a preprocesar.
+        keep_characters (str): Cadena de caracteres no-alfanuméricos que se desean conservar.
+    Returns:
+        str: El texto preprocesado.
+    """
+    if isinstance(text, str):
+        text = text.lower()
+        text = unidecode(text)
+        
+        # Crea una expresión regular que incluye los caracteres que se quieren conservar.
+        regex_pattern = r'[^a-z0-9\s' + re.escape(keep_characters) + ']'
+        text = re.sub(regex_pattern, ' ', text)
+        
+        text = re.sub(r'\s+', ' ', text).strip()
+    return text
