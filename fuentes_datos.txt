@@ -5,3 +5,4 @@ Precios WTI -> U.S. Energy Information Administration: https://www.eia.gov/dnav/
 Datos climáticos 1901-2022 -> Climate Change Knowledge Portal: https://cckpapi.worldbank.org/cckp/v1/cru-x0.5_timeseries_pr,tas_timeseries_monthly_1901-2022_mean_historical_cru_ts4.07_mean/ECU?_format=json
 Precios insumos agropecuarios 1990-2023 -> https://www.bce.fin.ec/informacioneconomica/sector-externo 2023-12-28
 Consumo energía eléctrica por clientes regulados 2013-2023 -> http://reportes.controlrecursosyenergia.gob.ec/ 2023-10-01
+Urea, (Black Sea), bulk, spot, f.o.b. Black Sea (primarily Yuzhnyy) beginning July 1991; for 1985-91 (June) f.o.b. Eastern Europe -> https://www.indexmundi.com/commodities/?commodity=urea&months=360 2024-10-18
