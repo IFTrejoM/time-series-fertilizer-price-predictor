@@ -1,8 +1,26 @@
-Precios combustibles -> Indice Precios del Consumidor INEC: https://www.ecuadorencifras.gob.ec/indice-de-precios-al-consumidor/ 2023-12-22 | 2024-10-02
-Inflación mensual -> Banco Central del Ecuador: https://www.bce.fin.ec/informacioneconomica 2023-12-22 | 2024-01-17 | 2024-10-02
-Precios commodities Europa 1960-2023 -> https://thedocs.worldbank.org/en/doc/5d903e848db1d1b83e0ec8f744e55570-0350012021/related/CMO-Historical-Data-Monthly.xlsx 2024-10-04
-Precios WTI -> U.S. Energy Information Administration: https://www.eia.gov/dnav/pet/hist/rwtcM.htm 2023-12-22 | 2024-10-02
-Datos climáticos 1901-2022 -> Climate Change Knowledge Portal: https://cckpapi.worldbank.org/cckp/v1/cru-x0.5_timeseries_pr,tas_timeseries_monthly_1901-2022_mean_historical_cru_ts4.07_mean/ECU?_format=json
-Precios insumos agropecuarios 1990-2023 -> https://www.bce.fin.ec/informacioneconomica/sector-externo 2023-12-28
-Consumo energía eléctrica por clientes regulados 2013-2023 -> http://reportes.controlrecursosyenergia.gob.ec/ 2023-10-01
-Urea, (Black Sea), bulk, spot, f.o.b. Black Sea (primarily Yuzhnyy) beginning July 1991; for 1985-91 (June) f.o.b. Eastern Europe -> https://www.indexmundi.com/commodities/?commodity=urea&months=360 2024-10-18
+1) Precios combustibles -> Indice Precios del Consumidor INEC: https://www.ecuadorencifras.gob.ec/indice-de-precios-al-consumidor/ 2023-12-22 | 2024-10-02
+
+2) Inflación mensual -> Banco Central del Ecuador: https://www.bce.fin.ec/informacioneconomica 2023-12-22 | 2024-01-17 | 2024-10-02
+
+3) Precios commodities Europa 1960-2023 -> https://thedocs.worldbank.org/en/doc/5d903e848db1d1b83e0ec8f744e55570-0350012021/related/CMO-Historical-Data-Monthly.xlsx 2024-10-04
+
+4) Precios WTI -> U.S. Energy Information Administration: https://www.eia.gov/dnav/pet/hist/rwtcM.htm 2023-12-22 | 2024-10-02
+
+5) Datos climáticos 1901-2022 -> Climate Change Knowledge Portal: https://cckpapi.worldbank.org/cckp/v1/cru-x0.5_timeseries_pr,tas_timeseries_monthly_1901-2022_mean_historical_cru_ts4.07_mean/ECU?_format=json
+
+6) Precios insumos agropecuarios 1990-2023 -> https://www.bce.fin.ec/informacioneconomica/sector-externo 2023-12-28
+
+7) Consumo energía eléctrica por clientes regulados 2013-2023 -> http://reportes.controlrecursosyenergia.gob.ec/ 2023-10-01
+
+8) Urea, (Black Sea), bulk, spot, f.o.b. Black Sea (primarily Yuzhnyy) beginning July 1991; for 1985-91 (June) f.o.b. Eastern Europe -> https://www.indexmundi.com/commodities/?commodity=urea&months=360 2024-10-18
+
+9) Datos exportaciones ->
+    BCE: https://www.bce.fin.ec/informacioneconomica -> 2024-10-21
+        SECTOR EXTERNO ->
+            Comercio Exterior ->
+                03. Por producto principal
+                    Exportaciones
+                    Mensual
+                        2013-2024
+                        Enero-Diciembre
+                    08. Export. por Producto Principal (nivel 4)
