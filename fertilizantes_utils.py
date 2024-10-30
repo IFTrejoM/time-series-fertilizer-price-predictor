@@ -271,3 +271,33 @@ def plot_ccf_subplots(df, X_columns, target_var, max_lag=30, palette_name="tab20
 
     # Mostrar el gráfico final con todos los subplots de CCF
     plt.show()
+    
+
+
+def plot_comparison(df_original, df_nueva, suffix='new'):
+    # Definir el número de filas para organizar los subplots en dos columnas
+    n_rows = int(np.ceil(len(df_original.columns) / 2))
+    
+    # Graficar las series originales y las versiones nuevas en subplots de dos columnas
+    fig, axes = plt.subplots(nrows=n_rows, ncols=2, figsize=(14, n_rows * 3), sharex=True)
+    axes = axes.flatten()  # Aplanar la matriz de ejes para facilitar la iteración
+    
+    for i, col in enumerate(df_original.columns):
+        # Graficar la serie original con línea punteada
+        axes[i].plot(df_original[col], label=col, color='#4B4B4B', alpha=0.5, linestyle='--')
+        
+        # Graficar la nueva versión de la serie con línea sólida
+        axes[i].plot(df_nueva[col], label=f'{col}{suffix}', color='#1B3A6F')
+        
+        # Configuración de títulos y leyendas
+        axes[i].set_title(col)
+        axes[i].legend(loc='upper right')
+    
+    # Eliminar cualquier subplot vacío si el número de series es impar
+    for j in range(i + 1, len(axes)):
+        fig.delaxes(axes[j])
+    
+    # Ajustar el layout y mostrar
+    plt.tight_layout()
+    plt.xlabel("Tiempo")
+    plt.show()
