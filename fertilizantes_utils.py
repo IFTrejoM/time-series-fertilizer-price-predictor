@@ -272,7 +272,7 @@ def plot_ccf_subplots(df, X_columns, target_var, max_lag=30, palette_name="tab20
     # Mostrar el gráfico final con todos los subplots de CCF
     plt.show()
     
-
+# ================================================================================================================= #
 
 def plot_comparison(df_original, df_nueva, suffix='new'):
     # Definir el número de filas para organizar los subplots en dos columnas
@@ -300,4 +300,100 @@ def plot_comparison(df_original, df_nueva, suffix='new'):
     # Ajustar el layout y mostrar
     plt.tight_layout()
     plt.xlabel("Tiempo")
+    plt.show()
+
+
+# ================================================================================================================= #
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+def plot_histograms(df, n_rows, bins=10, color_palette='husl'):
+    """
+    Genera un gráfico de histogramas para cada columna en el DataFrame, con colores distintos.
+    
+    Args:
+        df (pd.DataFrame): DataFrame que contiene los datos a graficar.
+        n_rows (int): Número de filas para organizar los subplots.
+        bins (int): Número de bins para los histogramas (por defecto es 10).
+    """
+    # Crear la figura y los subplots
+    fig, axes = plt.subplots(nrows=n_rows, ncols=2, figsize=(14, 3 * n_rows))
+
+    # Aplanar los ejes para facilitar la iteración
+    axes = axes.flatten()
+
+    # Usar una paleta de colores de seaborn para colores automáticos
+    colores = sns.color_palette(color_palette, len(df.columns))  # Paleta "husl" para diferentes colores
+
+    # Iterar sobre las columnas de df para graficar cada histograma
+    for i, (ax, column, color) in enumerate(zip(axes, df.columns, colores)):
+        
+        # Graficar el histograma de cada variable con su propio color
+        df[column].plot(
+            kind='hist',
+            bins=bins,  # Ajusta el número de bins si es necesario
+            ax=ax,
+            color=color,
+            alpha=0.7,
+            title=column
+        )
+        
+        # Ajustar los límites del eje X basados en los datos de cada variable
+        ax.set_xlim([df[column].min(), df[column].max()])
+
+    # Eliminar los subplots vacíos si hay más subplots que variables
+    for j in range(i + 1, len(axes)):
+        fig.delaxes(axes[j])
+
+    # Ajustar el diseño para evitar superposiciones
+    plt.tight_layout()
+    plt.show()
+
+# ================================================================================================================= #
+
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+
+def plot_acf_pacf(df, lags=50, color_palette='husl'):
+    """
+    Genera gráficos ACF y PACF para cada columna de un DataFrame, con colores distintos para cada par de gráficos.
+    
+    Args:
+        df (pd.DataFrame): DataFrame que contiene las series temporales a analizar.
+        lags (int): Número de lags para los gráficos de ACF y PACF (por defecto es 50).
+        color_palette (str): Paleta de colores de seaborn para diferenciar cada par de gráficos (por defecto es 'husl').
+    """
+    # Número de variables (columnas) en el DataFrame
+    n_vars = df.shape[1]
+
+    # Crear una cuadrícula de subgráficos
+    fig, axes = plt.subplots(nrows=n_vars, ncols=2, figsize=(12, 2.5 * n_vars))
+
+    # Generar una paleta de colores con tantos colores como columnas tenga el DataFrame
+    colores = sns.color_palette(color_palette, n_vars)
+
+    # Iterar sobre cada columna del DataFrame para graficar ACF y PACF
+    for i, (column, color) in enumerate(zip(df.columns, colores)):
+        # Gráfico ACF
+        plot_acf(df[column], lags=lags, alpha=0.05, ax=axes[i, 0])
+        axes[i, 0].set_title(f"ACF de {column}", fontsize=10)
+        
+        # Cambiar el color de las barras y los puntos en el ACF
+        for line in axes[i, 0].get_lines():
+            line.set_color(color)  # Cambiar el color de los puntos
+        for bar in axes[i, 0].collections:
+            bar.set_color(color)   # Cambiar el color de las barras
+
+        # Gráfico PACF
+        plot_pacf(df[column], lags=lags, alpha=0.05, ax=axes[i, 1])
+        axes[i, 1].set_title(f"PACF de {column}", fontsize=10)
+        
+        # Cambiar el color de las barras y los puntos en el PACF
+        for line in axes[i, 1].get_lines():
+            line.set_color(color)  # Cambiar el color de los puntos
+        for bar in axes[i, 1].collections:
+            bar.set_color(color)   # Cambiar el color de las barras
+
+    # Ajustar el diseño para evitar superposiciones
+    plt.tight_layout()
     plt.show()
