@@ -397,3 +397,115 @@ def plot_acf_pacf(df, lags=50, color_palette='husl'):
     # Ajustar el diseño para evitar superposiciones
     plt.tight_layout()
     plt.show()
+
+
+
+
+import matplotlib.pyplot as plt
+
+def plot_side_by_side_histograms(df_original, df_transformed, transformed_suffix="", bins=20):
+    """
+    Grafica histogramas en subplots organizados en filas, con el original y el transformado
+    uno al lado del otro en cada fila. La variable transformada puede tener un sufijo o prefijo personalizado.
+    
+    Args:
+        df_original (pd.DataFrame): DataFrame con las variables originales.
+        df_transformed (pd.DataFrame): DataFrame con las variables transformadas.
+        transformed_suffix (str): Sufijo, prefijo, o texto adicional en el nombre de las variables transformadas.
+        bins (int): Número de bins para los histogramas (por defecto es 20).
+    """
+    # Número de variables (columnas)
+    n_vars = df_original.shape[1]
+
+    # Crear una cuadrícula de subplots con dos columnas y una fila por variable
+    fig, axes = plt.subplots(nrows=n_vars, ncols=2, figsize=(12, 3 * n_vars))
+
+    # Iterar sobre cada columna para graficar los histogramas en la misma fila
+    for i, col in enumerate(df_original.columns):
+        ax_orig, ax_trans = axes[i] if n_vars > 1 else (axes[0], axes[1])  # Ajuste para un solo subplot
+        
+        # Histograma de la columna original
+        df_original[col].plot(kind='hist', bins=bins, alpha=0.6, color='blue', ax=ax_orig)
+        ax_orig.set_title(f"Original - {col}")
+        
+        # Histograma de la columna transformada, construyendo el nombre con el sufijo o prefijo
+        transformed_col_name = transformed_suffix + col if transformed_suffix else col
+        df_transformed[transformed_col_name].plot(kind='hist', bins=bins, alpha=0.6, color='orange')
+
+
+
+from statsmodels.stats.api import het_breuschpagan, het_goldfeldquandt
+
+def check_homoscedasticity(series):
+    """
+    Check the homoscedasticity of a time series using the Breusch-Pagan test.
+    
+    Parameters:
+    series (pd.Series): Time series data.
+    
+    Returns:
+    dict: Test results including the LM statistic and p-value.
+    """
+    # Ensure the series is a pandas Series and drop NaN values
+    series = series.dropna()
+
+    # Create a time variable as the predictor
+    time = np.arange(len(series)).reshape(-1, 1)
+
+    # Add a constant to the predictors
+    exog = np.hstack([np.ones((len(time), 1)), time])
+
+    # Perform the Breusch-Pagan test
+    lm_stat, lm_pval, _, _ = het_breuschpagan(series, exog)
+
+    # Return the results as a dictionary
+    return round(lm_stat, 3), round(lm_pval, 3)
+
+
+
+import numpy as np
+from statsmodels.tsa.stattools import ccf
+from scipy.stats import norm
+
+def get_most_significant_lag(x, y, max_lag=30, confidence_level=0.95):
+    """
+    Encuentra el lag más significativo entre dos series basado en la CCF.
+    
+    Parámetros:
+    - x (pd.Series o np.array): Serie independiente.
+    - y (pd.Series o np.array): Serie dependiente.
+    - max_lag (int): Número máximo de lags a analizar. Por defecto es 30.
+    - confidence_level (float): Nivel de confianza para evaluar significancia. Por defecto es 0.95.
+    
+    Retorna:
+    - dict: Contiene el lag más significativo, su valor de CCF y si es estadísticamente significativo.
+    """
+    # Asegurarse de que las series no tengan valores NaN
+    x = np.asarray(x).flatten()
+    y = np.asarray(y).flatten()
+    
+    # Calcular CCF para los lags positivos
+    ccf_vals = [np.corrcoef(x[:-lag] if lag > 0 else x, y[lag:] if lag > 0 else y)[0, 1] for lag in range(max_lag + 1)]
+    
+    # Convertir CCF a un array numpy
+    ccf_vals = np.array(ccf_vals)
+
+    # Calcular el intervalo de confianza
+    n = len(x)
+    z = norm.ppf(1 - (1 - confidence_level) / 2)
+    ic = z / np.sqrt(n)
+    
+    # Encontrar el lag más significativo basado en el valor absoluto de CCF
+    most_significant_lag = np.argmax(np.abs(ccf_vals))
+    most_significant_ccf = ccf_vals[most_significant_lag]
+    
+    # Verificar si el lag es estadísticamente significativo
+    is_significant = np.abs(most_significant_ccf) > ic
+    
+    return {
+        "lag": most_significant_lag,
+        "ccf": most_significant_ccf,
+        "is_significant": is_significant,
+        "confidence_interval": ic
+    }
+
