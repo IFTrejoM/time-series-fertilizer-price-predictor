@@ -398,10 +398,7 @@ def plot_acf_pacf(df, lags=50, color_palette='husl'):
     plt.tight_layout()
     plt.show()
 
-
-
-
-import matplotlib.pyplot as plt
+# ================================================================================================================= #
 
 def plot_side_by_side_histograms(df_original, df_transformed, transformed_suffix="", bins=20):
     """
@@ -432,7 +429,7 @@ def plot_side_by_side_histograms(df_original, df_transformed, transformed_suffix
         transformed_col_name = transformed_suffix + col if transformed_suffix else col
         df_transformed[transformed_col_name].plot(kind='hist', bins=bins, alpha=0.6, color='orange')
 
-
+# ================================================================================================================= #
 
 from statsmodels.stats.api import het_breuschpagan, het_goldfeldquandt
 
@@ -461,9 +458,8 @@ def check_homoscedasticity(series):
     # Return the results as a dictionary
     return round(lm_stat, 3), round(lm_pval, 3)
 
+# ================================================================================================================= #
 
-
-import numpy as np
 from statsmodels.tsa.stattools import ccf
 from scipy.stats import norm
 
@@ -509,3 +505,104 @@ def get_most_significant_lag(x, y, max_lag=30, confidence_level=0.95):
         "confidence_interval": ic
     }
 
+# ================================================================================================================= #
+
+import ruptures as rpt
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+
+def plot_change_points(df, n_bkps=3, annotate_breakpoints=True):
+    """
+    Función para graficar rupturas estructurales en series temporales de un dataframe.
+
+    Args:
+        df (DataFrame): DataFrame con las series temporales, donde cada columna es una serie.
+        n_bkps (int): Número máximo de rupturas significativas a buscar.
+        annotate_breakpoints (bool): Si True, agrega anotaciones con las fechas de las rupturas.
+
+    Returns:
+        None. Genera un gráfico con las series y sus rupturas.
+    """
+    series_to_analyze = df.columns
+    colors = ["red", "green"]  # Colores alternos para sombreado
+
+    n_rows = len(series_to_analyze)
+    fig, axes = plt.subplots(n_rows, 1, figsize=(8, n_rows * 3))
+
+    if n_rows == 1:  # Asegurar que axes sea iterable si solo hay una serie
+        axes = [axes]
+
+    for i, variable in enumerate(series_to_analyze):
+        serie = df[variable].dropna()
+        algo = rpt.Binseg(model="l2").fit(serie.values)
+        breakpoints = algo.predict(n_bkps=n_bkps)
+        
+        # Graficar la serie
+        axes[i].plot(serie.index, serie, label=f"{variable}", color="blue")
+        
+        # Sombrear áreas y opcionalmente agregar anotaciones
+        for j in range(len(breakpoints) - 1):
+            start = serie.index[breakpoints[j]]
+            end = serie.index[breakpoints[j + 1] - 1]
+            color = colors[j % len(colors)]
+            axes[i].axvspan(start, end, color=color, alpha=0.2)
+            
+            if annotate_breakpoints:
+                date_label = start.strftime('%Y-%m-%d')
+                axes[i].text(start, serie.iloc[breakpoints[j]], date_label, color="gray",
+                             fontsize=8, rotation=90)
+
+        # Configurar eje X y título
+        axes[i].xaxis.set_major_locator(mdates.YearLocator())
+        axes[i].xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+        axes[i].set_title(f"Rupturas en {variable}")
+        axes[i].grid(True)
+        axes[i].legend()
+
+    # Configuración general del gráfico
+    plt.suptitle(f"Detección de rupturas estructurales, n={n_bkps}", fontsize=15)
+    plt.tight_layout(rect=[0, 0, 1, 0.98])
+    plt.show()
+
+# ================================================================================================================= #
+ 
+import statsmodels.api as sm
+
+def test_known_structural_break(y, X, break_date):
+    """
+    Perform a structural break test at a given date.
+
+    Parameters:
+    - y: pandas Series containing the dependent variable, with a DateTimeIndex.
+    - X: pandas DataFrame containing the independent variables, with a DateTimeIndex.
+    - break_date: str, the breakpoint date in "YYYY-MM-DD" format.
+
+    Returns:
+    - A dictionary containing the F-statistic and p-value for the structural break test.
+    """
+    # Ensure y and X have matching DateTimeIndexes
+    if not isinstance(y.index, pd.DatetimeIndex) or not isinstance(X.index, pd.DatetimeIndex):
+        raise ValueError("Both y and X must have DateTimeIndex.")
+    
+    # Align y and X to ensure their indices match
+    y, X = y.align(X, join="inner")
+    
+    # Convert break_date to datetime
+    break_date = pd.to_datetime(break_date)
+    
+    # Create the post-break indicator
+    post_break = (y.index >= break_date).astype(int)
+    
+    # Prepare the data for the model without the structural break
+    X_no_break = sm.add_constant(X)
+    model_no_break = sm.OLS(y, X_no_break).fit()
+    
+    # Prepare the data for the model with the structural break
+    X_with_break = sm.add_constant(X)
+    X_with_break["post_break"] = post_break
+    model_with_break = sm.OLS(y, X_with_break).fit()
+    
+    # Perform the F-test to compare models
+    f_stat, p_value, _ = model_with_break.compare_f_test(model_no_break)
+    
+    return {"F-Statistic": f_stat, "p-value": p_value}
