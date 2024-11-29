@@ -606,3 +606,36 @@ def test_known_structural_break(y, X, break_date):
     f_stat, p_value, _ = model_with_break.compare_f_test(model_no_break)
     
     return {"F-Statistic": f_stat, "p-value": p_value}
+
+# ================================================================================================================= #
+
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+
+def calcular_vif(dataframe):
+    """
+    Calcula el VIF (Factor de Inflación de la Varianza) para las columnas de un DataFrame.
+
+    Parámetros:
+    - dataframe: DataFrame de pandas con las variables independientes.
+
+    Retorna:
+    - DataFrame con dos columnas: Variable y VIF.
+    """
+    # Asegurarse de que no haya valores nulos en el dataframe
+    if dataframe.isnull().sum().sum() > 0:
+        raise ValueError("El DataFrame contiene valores nulos. Por favor, elimínalos o imputa los valores faltantes.")
+    
+    # Añadir una constante para representar el intercepto en el cálculo del VIF
+    dataframe = dataframe.assign(constante=1)
+    
+    # Calcular el VIF para cada columna
+    vif_data = pd.DataFrame({
+        "Variable": dataframe.columns,
+        "VIF": [variance_inflation_factor(dataframe.values, i) for i in range(dataframe.shape[1])]
+    })
+    
+    # Eliminar la constante del resultado final
+    vif_data = vif_data[vif_data["Variable"] != "constante"]
+    
+    # Ordenar el resultado por VIF descendente
+    return vif_data.sort_values(by="VIF", ascending=False).reset_index(drop=True)
