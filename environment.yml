@@ -1,4 +1,4 @@
-name: C:\condaenvs\dsenv
+name: dsenv
 channels:
   - anaconda
   - conda-forge

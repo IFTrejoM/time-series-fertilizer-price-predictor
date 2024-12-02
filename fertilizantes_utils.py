@@ -566,19 +566,72 @@ def plot_change_points(df, n_bkps=3, annotate_breakpoints=True):
 
 # ================================================================================================================= #
  
+import pandas as pd
+import ruptures as rpt
 import statsmodels.api as sm
 
-def test_known_structural_break(y, X, break_date):
+def detect_structural_breaks(y, X, model_type="l2", n_bkps=5):
     """
-    Perform a structural break test at a given date.
+    Detect structural breaks in a multivariate system and validate them with statistical tests.
+
+    This function combines automatic detection of structural breaks using the `ruptures` library
+    with a statistical validation process. It identifies significant changes in the relationship
+    between a dependent variable (`y`) and a set of independent variables (`X`) over time.
+
+    The process involves:
+    1. Automatic detection of breakpoints in the system using a cost-based segmentation algorithm.
+    2. Validation of each detected breakpoint with an F-test comparing two models:
+       - A baseline model without a structural break.
+       - An alternative model including an indicator variable for the post-break period.
 
     Parameters:
-    - y: pandas Series containing the dependent variable, with a DateTimeIndex.
-    - X: pandas DataFrame containing the independent variables, with a DateTimeIndex.
-    - break_date: str, the breakpoint date in "YYYY-MM-DD" format.
+    ----------
+    y : pandas.Series
+        The dependent variable, with a DateTimeIndex representing the time periods.
+    X : pandas.DataFrame
+        The independent variables, with a DateTimeIndex that matches `y`.
+    model_type : str, optional
+        The cost function to be used by the `ruptures` library for detecting breakpoints.
+        Common options include:
+        - "l2" (default): Least squares segmentation.
+        - "linear": Linear regression cost.
+        - "rbf": Radial basis function segmentation.
+    n_bkps : int, optional
+        The maximum number of breakpoints to detect in the data. Defaults to 5.
 
     Returns:
-    - A dictionary containing the F-statistic and p-value for the structural break test.
+    -------
+    pandas.DataFrame
+        A DataFrame containing the following columns:
+        - `break_date`: The date of each detected structural break.
+        - `F-Statistic`: The F-statistic from the model comparison test.
+        - `p-value`: The p-value associated with the F-test, indicating the significance
+          of the structural break.
+
+    Raises:
+    ------
+    ValueError
+        If `y` or `X` does not have a DateTimeIndex.
+
+    Examples:
+    --------
+    # Simulated data
+    dates = pd.date_range("2020-01-01", "2022-12-31", freq="M")
+    y = pd.Series(range(len(dates)), index=dates)  # Dependent variable
+    X = pd.DataFrame({"costs": range(len(dates))}, index=dates)  # Independent variables
+
+    # Detect structural breaks
+    results = detect_structural_breaks(y, X, model_type="l2", n_bkps=3)
+    print(results)
+
+    Notes:
+    -----
+    - The function first aligns the indices of `y` and `X` to ensure consistency.
+    - Detected breakpoints are validated using an F-test, which assumes normally distributed errors.
+    - The F-test compares the fit of two Ordinary Least Squares (OLS) models:
+      one with and one without a structural break.
+    - This approach assumes the breakpoints are detected globally across all variables in `y` and `X`.
+
     """
     # Ensure y and X have matching DateTimeIndexes
     if not isinstance(y.index, pd.DatetimeIndex) or not isinstance(X.index, pd.DatetimeIndex):
@@ -587,25 +640,36 @@ def test_known_structural_break(y, X, break_date):
     # Align y and X to ensure their indices match
     y, X = y.align(X, join="inner")
     
-    # Convert break_date to datetime
-    break_date = pd.to_datetime(break_date)
+    # Combine y and X into a single matrix for ruptures
+    data = pd.concat([y, X], axis=1).values
     
-    # Create the post-break indicator
-    post_break = (y.index >= break_date).astype(int)
+    # Detect breakpoints using ruptures
+    model = rpt.Binseg(model=model_type).fit(data)
+    breakpoints = model.predict(n_bkps=n_bkps)
     
-    # Prepare the data for the model without the structural break
-    X_no_break = sm.add_constant(X)
-    model_no_break = sm.OLS(y, X_no_break).fit()
+    # Prepare results
+    results = []
+    for breakpoint in breakpoints[:-1]:  # Exclude the last index (end of data)
+        break_date = y.index[breakpoint]
+        
+        # Create the post-break indicator
+        post_break = (y.index >= break_date).astype(int)
+        
+        # Prepare the data for the model without the structural break
+        X_no_break = sm.add_constant(X)
+        model_no_break = sm.OLS(y, X_no_break).fit()
+        
+        # Prepare the data for the model with the structural break
+        X_with_break = sm.add_constant(X)
+        X_with_break["post_break"] = post_break
+        model_with_break = sm.OLS(y, X_with_break).fit()
+        
+        # Perform the F-test to compare models
+        f_stat, p_value, _ = model_with_break.compare_f_test(model_no_break)
+        
+        results.append({"break_date": break_date, "F-Statistic": f_stat, "p-value": p_value})
     
-    # Prepare the data for the model with the structural break
-    X_with_break = sm.add_constant(X)
-    X_with_break["post_break"] = post_break
-    model_with_break = sm.OLS(y, X_with_break).fit()
-    
-    # Perform the F-test to compare models
-    f_stat, p_value, _ = model_with_break.compare_f_test(model_no_break)
-    
-    return {"F-Statistic": f_stat, "p-value": p_value}
+    return pd.DataFrame(results)
 
 # ================================================================================================================= #
 
@@ -639,3 +703,112 @@ def calcular_vif(dataframe):
     
     # Ordenar el resultado por VIF descendente
     return vif_data.sort_values(by="VIF", ascending=False).reset_index(drop=True)
+
+# ================================================================================================================= #
+
+import statsmodels.api as sm
+
+def ols_backward_elimination(data, target, significance_level=0.05):
+    """
+    Realiza backward elimination para un modelo OLS basado en el p-valor de las variables.
+    
+    Args:
+        data (pd.DataFrame): DataFrame con las variables independientes.
+        target (pd.Series): Variable dependiente.
+        significance_level (float): Nivel de significancia para eliminar variables.
+    
+    Returns:
+        model: Modelo final ajustado.
+        remaining_vars: Lista de variables seleccionadas.
+    """
+    variables = data.columns.tolist()
+    while len(variables) > 0:
+        # Ajustar el modelo OLS
+        X = sm.add_constant(data[variables])  # Agregar la constante
+        model = sm.OLS(target, X).fit(cov_type='HC1')
+        
+        # Obtener p-valores
+        p_values = model.pvalues.iloc[1:]  # Excluir el p-valor de la constante
+        max_p_value = p_values.max()  # Mayor p-valor
+        
+        if max_p_value > significance_level:
+            # Eliminar la variable con el mayor p-valor
+            excluded_var = p_values.idxmax()
+            print(f"variable eliminada: {excluded_var}; p-valor: {max_p_value:.4f}")
+            variables.remove(excluded_var)
+        else:
+            break
+    
+    # Modelo final
+    final_model = sm.OLS(target, sm.add_constant(data[variables])).fit()
+    return final_model, variables
+
+# ================================================================================================================= #
+
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+
+def plot_scatter_matrix(df, trendline=False):
+    """
+    Grafica todos los scatterplots de variables numéricas como subplots en un solo gráfico.
+    Siempre muestra el R^2 en cada subplot y opcionalmente agrega una línea de tendencia.
+    
+    Args:
+        df (pd.DataFrame): DataFrame con los datos.
+        trendline (bool): Si es True, agrega una línea de tendencia en los gráficos.
+    """
+    # Filtrar variables numéricas
+    numeric_cols = df.select_dtypes(include=np.number).columns
+    num_vars = len(numeric_cols)
+    
+    if num_vars < 2:
+        raise ValueError("El DataFrame debe tener al menos dos variables numéricas para crear scatterplots.")
+    
+    # Crear subplots
+    fig, axes = plt.subplots(num_vars, num_vars, figsize=(15, 15), constrained_layout=True)
+    fig.suptitle("Diagramas de dispersión", fontsize=16)
+    
+    for i, col1 in enumerate(numeric_cols):
+        for j, col2 in enumerate(numeric_cols):
+            ax = axes[i, j]
+            
+            if i == j:
+                # Diagonal: histogramas de la variable
+                ax.hist(df[col1], bins=20, color='lightblue', alpha=0.7)
+                ax.set_title(f'{col1}', fontsize=10)
+            else:
+                # Scatterplot entre dos variables
+                sns.scatterplot(x=df[col2], y=df[col1], ax=ax, s=10, alpha=0.7)
+                
+                # Calcular línea de tendencia y R^2
+                x_col = df[col2].values.reshape(-1, 1)
+                y_col = df[col1].values
+                model = LinearRegression().fit(x_col, y_col)
+                y_pred = model.predict(x_col)
+                r2 = r2_score(y_col, y_pred)
+                
+                # Mostrar R² con anotación
+                ax.text(
+                    0.05, 0.85, f'$R^2$ = {r2:.3f}',  # Siempre mostrar R²
+                    transform=ax.transAxes, fontsize=8, verticalalignment='top',
+                    bbox=dict(boxstyle="round,pad=0.3", edgecolor='black', facecolor='white', alpha=0.5)
+                )
+                
+                if trendline:
+                    # Dibujar línea de tendencia si trendline=True
+                    ax.plot(df[col2], y_pred, color='red', linewidth=1)
+            
+            # Configurar ejes
+            if i == num_vars - 1:
+                ax.set_xlabel(col2, fontsize=8)
+            else:
+                ax.set_xlabel("")
+                ax.tick_params(labelbottom=False)
+                
+            if j == 0:
+                ax.set_ylabel(col1, fontsize=8)
+            else:
+                ax.set_ylabel("")
+                ax.tick_params(labelleft=False)
+    
+    plt.show()
