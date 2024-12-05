@@ -274,7 +274,7 @@ def plot_ccf_subplots(df, X_columns, target_var, max_lag=30, palette_name="tab20
     
 # ================================================================================================================= #
 
-def plot_comparison(df_original, df_nueva, suffix='new'):
+def plot_comparison(df_original, df_nueva, prefix='', suffix=''):
     # Definir el número de filas para organizar los subplots en dos columnas
     n_rows = int(np.ceil(len(df_original.columns) / 2))
     
@@ -287,7 +287,7 @@ def plot_comparison(df_original, df_nueva, suffix='new'):
         axes[i].plot(df_original[col], label=col, color='#4B4B4B', alpha=0.5, linestyle='--')
         
         # Graficar la nueva versión de la serie con línea sólida
-        axes[i].plot(df_nueva[col], label=f'{col}{suffix}', color='#1B3A6F')
+        axes[i].plot(df_nueva[col], label=f'{prefix}{col}{suffix}', color='#1B3A6F')
         
         # Configuración de títulos y leyendas
         axes[i].set_title(col)
@@ -811,4 +811,80 @@ def plot_scatter_matrix(df, trendline=False):
                 ax.set_ylabel("")
                 ax.tick_params(labelleft=False)
     
+    plt.show()
+
+# ================================================================================================================= #
+
+def plot_homoscedasticity(data):
+    """
+    Plot predicted values vs residuals for each variable in a DataFrame to check for homoscedasticity,
+    and calculate the Breusch-Pagan test for each variable.
+
+    Parameters:
+    ----------
+    data : pandas.DataFrame
+        A DataFrame where each column represents a variable.
+
+    Returns:
+    -------
+    None. Displays subplots of predicted values vs residuals along with p-value and a verdict for homoscedasticity.
+    """
+    num_vars = data.shape[1]
+    cols = 2  # Number of columns for subplots
+    rows = (num_vars + 1) // cols  # Determine the number of rows needed
+
+    fig, axes = plt.subplots(rows, cols, figsize=(12, 2 * rows))
+    axes = axes.flatten()
+
+    # Convert datetime index to numerical (years as float)
+    time_as_float = data.index.year + (data.index.month - 1) / 12
+
+    for i, col in enumerate(data.columns):
+        # Fit a simple OLS model for each variable
+        X = sm.add_constant(time_as_float)  # Time trend as predictor
+        y = data[col]
+        model = sm.OLS(y, X).fit()
+        
+        # Get predicted values and residuals
+        y_pred = model.predict(X)
+        residuals = y - y_pred
+        
+        # Perform the Breusch-Pagan test
+        exog = np.hstack([np.ones((len(y_pred), 1)), y_pred.reshape(-1, 1)])
+        lm_stat, lm_pval, _, _ = het_breuschpagan(residuals, exog)
+        verdict = "Homocedástica" if lm_pval > 0.05 else "Heterocedástica"
+
+        # Plot predicted vs residuals
+        axes[i].scatter(y_pred, residuals, alpha=0.6)
+        axes[i].axhline(0, color='red', linestyle='--', linewidth=1)
+        axes[i].set_title(f"{col} | p={lm_pval:.3f}: {verdict}", size=11)
+        axes[i].set_xlabel("Predicciones")
+        axes[i].set_ylabel("Residuos")
+
+    # Remove unused subplots
+    for j in range(i + 1, len(axes)):
+        fig.delaxes(axes[j])
+
+    plt.suptitle("Revisión de homocedasticidad, estadístico Breusch-Pagan", y=1.0)
+    plt.tight_layout()
+    plt.show()
+
+
+
+def plot_correlation_heatmap(df, method='pearson'):
+    
+    # Acortar nombres de vriables para mejorar la visualización:
+    truncated_labels = [col[:15] + "..." if len(col) > 10 else col for col in df.columns]
+    
+    # Colocar etiquetas centradas:
+    posición_ticks = np.arange(len(df.columns)) + 0.5
+
+    # Graficar mapa de calor de correlaciones no lineales:
+    corr = df.corr(method=method) # 'pearson', 'spearman', 'kendall'
+    mask = np.triu(np.ones_like(corr, dtype=bool))
+    plt.figure(figsize=(6, 6))
+    sns.heatmap(data=corr, mask=mask, cmap='coolwarm', center=0, linewidths=0.5, annot=True, annot_kws={"size": 6}, cbar=False)
+    plt.title(f'Mapa de calor de correlaciones {method.capitalize()}', size=13)
+    plt.xticks(ticks=posición_ticks, labels=truncated_labels, fontsize=8)
+    plt.yticks(ticks=posición_ticks, labels=truncated_labels, fontsize=8)
     plt.show()
